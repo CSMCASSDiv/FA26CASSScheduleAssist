@@ -177,7 +177,6 @@ results = results.sort_values(by="Section Meet Begin Time")
 
 # Display results
 st.subheader("Classes Happening Now")
-st.write(df.columns)
 
 if results.empty:
     st.write("No classes found.")
