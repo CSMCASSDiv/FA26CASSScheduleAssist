@@ -163,14 +163,6 @@ time_input_filter = st.multiselect(
     ["Morning", "Afternoon", "Evening", "Other"]
 )
 
-# Instructor Email
-email = row.get("Instructor Email", "")
-
-if pd.notna(email) and email != "":
-    email_display = f'{email}{email}</a>'
-else:
-    email_display = "N/A"
-
 # Filtering
 results = df[
     df["Days_List"].apply(lambda days: selected_day_letter in days)
@@ -194,17 +186,26 @@ if len(time_input_filter) > 0:
 results = results.sort_values(by="Section Meet Begin Time")
 
 # Display results
-st.subheader("Classes Happening Now")
+st.subheader("Class Results")
 
 if results.empty:
     st.write("No classes found.")
 else:
     for _, row in results.iterrows():
+        email = row.get("Instructor Email", "")
+        
+        if pd.notna(email) and email != "":
+            email_display = f'{email}{email}</a>'
+        else:
+            email_display = "N/A"
+    
         group = row["Group"]
         color = color_map.get(group, "#333333")
         icon = group_icons.get(group, "⚪")
         modality_icon = modality_icons.get(row["Modality_Clean"], "")
         timeofday_icon = timeofday_icons.get(row["TimeOfDay"], "")
+      
+
 
 
         st.markdown(f"""
