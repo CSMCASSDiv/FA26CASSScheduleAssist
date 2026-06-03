@@ -7,6 +7,16 @@ df["Section Meet Begin Time"] = pd.to_numeric(df["Section Meet Begin Time"], err
 df["Section Meet End Time"] = pd.to_numeric(df["Section Meet End Time"], errors="coerce")
 df.columns = df.columns.str.strip()
 
+email_df = pd.read_csv("FA26_CASS_FacultyEmail.csv")
+email_df.columns = email_df.columns.str.strip()
+
+# Normalize Instructors
+df["Instructor"] = df["Instructor"].str.lower().str.strip()
+email_df["Instructor"] = email_df["Instructor"].str.lower().str.strip()
+
+# Merge
+df = df.merge(email_df, on="Instructor", how="left")
+
 # Map full day → schedule letters
 day_map = {
     "Monday": "M",
@@ -153,6 +163,14 @@ time_input_filter = st.multiselect(
     ["Morning", "Afternoon", "Evening", "Other"]
 )
 
+# Instructor Email
+email = row.get("Instructor Email", "")
+
+if pd.notna(email) and email != "":
+    email_display = f'{email}{email}</a>'
+else:
+    email_display = "N/A"
+
 # Filtering
 results = df[
     df["Days_List"].apply(lambda days: selected_day_letter in days)
@@ -204,7 +222,7 @@ else:
             <b>Time of Day:</b> {timeofday_icon} {row.get('TimeOfDay', 'N/A')}<br>
             <b>Category:</b> {group}<br>
             <b>Instructor:</b> {row['Instructor']}<br>
-            <b>Email:</b> <a href="mailto:{row['Instructor Email']}">{row['Instructor Email']}</a><br>
+            <b>Email:</b> <a href="mailto:{email_display}">{row['Instructor Email']}</a><br>
             <b>Location:</b> Bldg {row['Building']}, Room {row['Room']}<br>
             <b>Time:</b> {row['Section Meet Begin Time']}–{row['Section Meet End Time']}<br>
             <b>Term Length:</b> {row.get('Term Length', 'N/A')}<br>
