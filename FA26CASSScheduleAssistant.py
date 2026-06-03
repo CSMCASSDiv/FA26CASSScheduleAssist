@@ -3,6 +3,8 @@ import streamlit as st
 
 # Load your CSV
 df = pd.read_csv("FA26_CASS_Classes.csv", skiprows=1)
+df["Section Meet Begin Time"] = pd.to_numeric(df["Section Meet Begin Time"], errors="coerce")
+df["Section Meet End Time"] = pd.to_numeric(df["Section Meet End Time"], errors="coerce")
 df.columns = df.columns.str.strip()
 
 # Map full day → schedule letters
@@ -23,13 +25,15 @@ df["Days_List"] = df["Section Meet Schedule"].apply(expand_days)
 
 # Time of Day
 def get_time_of_day(start_time):
+    if pd.isna(start_time):
+        return "Other"
     if 800 <= start_time <= 1159:
         return "Morning"
     elif 1200 <= start_time <= 1659:
         return "Afternoon"
     else:
         return "Evening"
-
+        
 df["TimeOfDay"] = df["Section Meet Begin Time"].apply(get_time_of_day)
 
 # Modality 
@@ -137,12 +141,17 @@ group_input = st.multiselect(
     "Filter by ACC",
     ["Arts & Media", "Business & Public Service", "Health & Wellness", "Language Arts & Social Science", "Other"]
 )
-
 st.caption("Select one or more categories. Leave blank to show all.")
 
-# ACC filter
-if len(group_input) > 0:
-    results = results[results["Group"].isin(group_input)]
+modality_input = st.multiselect(
+    "Filter by Modality",
+    ["Face to Face", "Hybrid", "Online", "Other"]
+)
+
+time_input_filter = st.multiselect(
+    "Filter by Time of Day",
+    ["Morning", "Afternoon", "Evening", "Other"]
+)
 
 # Filtering
 results = df[
@@ -150,6 +159,10 @@ results = df[
     & (df["Section Meet Begin Time"] <= time_input)
     & (df["Section Meet End Time"] >= time_input)
 ]
+
+# ACC filter
+if len(group_input) > 0:
+    results = results[results["Group"].isin(group_input)]
 
 # Modality Filter
 if len(modality_input) > 0:
