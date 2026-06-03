@@ -2,7 +2,7 @@ import pandas as pd
 import streamlit as st
 
 # Load your CSV
-df = pd.read_csv("FA26_cleaned_room_schedule.csv")
+df = pd.read_csv("FA26_CASS_Classes.csv")
 
 # Map full day → schedule letters
 day_map = {
@@ -18,7 +18,33 @@ def expand_days(schedule):
 
 df["Days_List"] = df["Section Meet Schedule"].apply(expand_days)
 
-# Group Map
+# Time of Day
+def get_time_of_day(start_time):
+    if 800 <= start_time <= 1159:
+        return "Morning"
+    elif 1200 <= start_time <= 1659:
+        return "Afternoon"
+    else:
+        return "Evening"
+
+df["TimeOfDay"] = df["Section Meet Begin Time"].apply(get_time_of_day)
+
+# Modality 
+def clean_modality(value):
+    value = str(value).lower()
+
+    if "face" in value:
+        return "Face to Face"
+    elif "hybrid" in value:
+        return "Hybrid"
+    elif "online" in value or "onln" in value:
+        return "Online"
+    else:
+        return "Other"
+
+df["Modality_Clean"] = df["Modality"].apply(clean_modality)
+
+# ACC Group Map
 group_map = {
 
     # Arts & Media
@@ -62,6 +88,18 @@ group_icons = {
     "Other": "⚪"
 }
 
+timeofday_icons = {
+    "Morning": "🌅",
+    "Afternoon": "☀️",
+    "Evening": "🌙"
+}
+
+modality_icons = {
+    "Face to Face": "🏫",
+    "Hybrid": "🧑‍💻",
+    "Online": "🖥️"
+}
+
 # Extract building number (everything before '-')
 df["Building"] = (
     df["Section Building Code"]
@@ -99,6 +137,10 @@ group_input = st.multiselect(
 
 st.caption("Select one or more categories. Leave blank to show all.")
 
+# ACC filter
+if len(group_input) > 0:
+    results = results[results["Group"].isin(group_input)]
+
 # Filtering
 results = df[
     df["Days_List"].apply(lambda days: selected_day_letter in days)
@@ -106,8 +148,13 @@ results = df[
     & (df["Section Meet End Time"] >= time_input)
 ]
 
-if len(group_input) > 0:
-    results = results[results["Group"].isin(group_input)]
+# Modality Filter
+if len(modality_input) > 0:
+    results = results[results["Modality_Clean"].isin(modality_input)]
+
+# Time of Day Filter
+if len(time_input_filter) > 0:
+    results = results[results["TimeOfDay"].isin(time_input_filter)]
 
 # Sort results by time
 results = results.sort_values(by="Section Meet Begin Time")
@@ -122,6 +169,9 @@ else:
         group = row["Group"]
         color = color_map.get(group, "#333333")
         icon = group_icons.get(group, "⚪")
+        modality_icon = modality_icons.get(row["Modality_Clean"], "")
+        timeofday_icon = timeofday_icons.get(row["TimeOfDay"], "")
+
 
         st.markdown(f"""
         <div style="
@@ -134,10 +184,15 @@ else:
             <h4 style="color:{color}; margin-bottom:5px;">
                 {icon} {row['Course']} – {row['Title']}
             </h4>
+            <b>CRN:</b> {row['CRN']} <b>Modality:</b> {modality_icon} {row.get('Modality_Clean', 'N/A')}<br>
+            <b>Time of Day:</b> {timeofday_icon} {row.get('TimeOfDay', 'N/A')}<br>
             <b>Category:</b> {group}<br>
             <b>Instructor:</b> {row['Instructor']}<br>
             <b>Email:</b> <a href="mailto:{row['Instructor Email']}">{row['Instructor Email']}</a><br>
             <b>Location:</b> Bldg {row['Building']}, Room {row['Room']}<br>
-            <b>Time:</b> {row['Section Meet Begin Time']}–{row['Section Meet End Time']}
+            <b>Time:</b> {row['Section Meet Begin Time']}–{row['Section Meet End Time']}<br>
+            <b>Term Length:</b> {row.get('Term Length', 'N/A')}<br>
+            <b>CalGETC Attribute:</b> {row.get('CalGETC Attribute', 'This course does not appear in any CalGETC areas. It may still satisfy a Local or CSU requirement.  For best results, check with your counselor.')}<br>
+            <a href="{row.get('Class Hyperlink', '#')}" target="_blank">🔗 View Class Page</a>            
         </div>
         """, unsafe_allow_html=True)
