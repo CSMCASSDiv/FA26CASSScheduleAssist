@@ -2,7 +2,8 @@ import pandas as pd
 import streamlit as st
 
 # Load your CSV
-df = pd.read_csv("FA26_CASS_Classes.csv")
+df = pd.read_csv("FA26_CASS_Classes.csv", skiprows=1)
+df.columns = df.columns.str.strip()
 
 # Map full day → schedule letters
 day_map = {
@@ -14,6 +15,8 @@ day_map = {
 
 # Expand MW/TR into lists
 def expand_days(schedule):
+    if pd.isna(schedule) or str(schedule).strip() == "":
+        return []
     return list(schedule)
 
 df["Days_List"] = df["Section Meet Schedule"].apply(expand_days)
@@ -161,6 +164,7 @@ results = results.sort_values(by="Section Meet Begin Time")
 
 # Display results
 st.subheader("Classes Happening Now")
+st.write(df.columns)
 
 if results.empty:
     st.write("No classes found.")
